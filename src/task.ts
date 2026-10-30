@@ -6,6 +6,24 @@ import { enqueue, flush, K, log, Pt } from './store';
 
 export const TASK = 'clocation-share';
 
+const HB_MS = 20000;     // heartbeat period
+const STALE_MS = 30000;  // no fix for this long -> force one
+
+const OPTS: Location.LocationTaskOptions = {
+  accuracy: Location.Accuracy.High,
+  timeInterval: 5000,
+  distanceInterval: 0, // was 10: Android then only reports after moving 10 m, so a stationary phone went silent
+  foregroundService: {
+    notificationTitle: 'cLocation',
+    notificationBody: 'Sharing location',
+    notificationColor: '#2563eb',
+  },
+};
+
+let lastFix = 0;
+let hb: ReturnType<typeof setInterval> | null = null;
+let beating = false;
+
 TaskManager.defineTask(TASK, async ({ data, error }: any) => {
   if (error) { await log(`task error: ${error.message ?? error}`); return; }
   if (!data?.locations) return;
@@ -16,6 +34,7 @@ TaskManager.defineTask(TASK, async ({ data, error }: any) => {
     spd: l.coords.speed ?? undefined,
     hdg: l.coords.heading ?? undefined,
   }));
+  lastFix = Date.now();
   await log(`got ${pts.length} fix`);
   await enqueue(pts);
   await flush();
@@ -32,6 +51,60 @@ const waitActive = () =>
         });
       });
 
+const toPt = (l: Location.LocationObject): Pt => ({
+  lat: l.coords.latitude,
+  lng: l.coords.longitude,
+  t: l.timestamp,
+  spd: l.coords.speed ?? undefined,
+  hdg: l.coords.heading ?? undefined,
+});
+
+/** Runs every HB_MS while sharing: reports health, restarts a dead service, forces a fix if updates went quiet, retries the queue. */
+async function beat() {
+  if (beating) return;
+  beating = true;
+  try {
+    if ((await AsyncStorage.getItem(K.sharing)) !== '1') { stopHeartbeat(); return; }
+    const running = await Location.hasStartedLocationUpdatesAsync(TASK).catch(() => false);
+    const quiet = Date.now() - lastFix;
+    let note = `hb svc=${running ? 'on' : 'OFF'} quiet=${Math.round(quiet / 1000)}s`;
+
+    if (!running) {
+      if (AppState.currentState === 'active') {
+        await Location.startLocationUpdatesAsync(TASK, OPTS)
+          .then(() => { note += ' restarted'; })
+          .catch((e: any) => { note += ` restart-failed:${String(e?.message ?? e).slice(0, 60)}`; });
+      } else {
+        note += ' (background, cannot restart)';
+      }
+    }
+
+    if (quiet > STALE_MS) {
+      const p = await Promise.race([
+        Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
+        new Promise<null>((res) => setTimeout(() => res(null), 15000)),
+      ]).catch(() => null);
+      if (p) { lastFix = Date.now(); await enqueue([toPt(p)]); note += ' forced-fix'; }
+      else note += ' no-gps';
+    }
+
+    const left = await flush();
+    await log(`${note} q=${left}`);
+  } finally {
+    beating = false;
+  }
+}
+
+function startHeartbeat() {
+  stopHeartbeat();
+  lastFix = Date.now();
+  hb = setInterval(() => { beat().catch(() => {}); }, HB_MS);
+}
+
+function stopHeartbeat() {
+  if (hb) { clearInterval(hb); hb = null; }
+}
+
 export async function startSharing() {
   await log('ask foreground perm');
   const fg = await Location.requestForegroundPermissionsAsync();
@@ -43,21 +116,14 @@ export async function startSharing() {
   await waitActive();
   await log('starting service');
   await Location.stopLocationUpdatesAsync(TASK).catch(() => {}); // clear any stale registration
-  await Location.startLocationUpdatesAsync(TASK, {
-    accuracy: Location.Accuracy.High,
-    timeInterval: 5000,
-    distanceInterval: 10,
-    foregroundService: {
-      notificationTitle: 'cLocation',
-      notificationBody: 'Sharing location',
-      notificationColor: '#2563eb',
-    },
-  });
+  await Location.startLocationUpdatesAsync(TASK, OPTS);
   await AsyncStorage.setItem(K.sharing, '1');
+  startHeartbeat();
   await log('service started');
 }
 
 export async function stopSharing() {
+  stopHeartbeat();
   await AsyncStorage.setItem(K.sharing, '0');
   if (await Location.hasStartedLocationUpdatesAsync(TASK).catch(() => false)) {
     await Location.stopLocationUpdatesAsync(TASK).catch(() => {});
@@ -73,5 +139,6 @@ export async function reconcile(): Promise<boolean> {
     await stopSharing();
     return false;
   }
+  if (running && wanted) startHeartbeat();
   return running && wanted;
 }

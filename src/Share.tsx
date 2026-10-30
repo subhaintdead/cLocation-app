@@ -97,7 +97,7 @@ export default function Share({ onBack }: { onBack: () => void }) {
         </View>
       )}
       <View style={{ marginTop: 16 }}>
-        {logs.map((l, i) => (
+        {logs.slice(-25).map((l, i) => (
           <Text key={i} style={[s.dim, { fontSize: 11 }]}>{l}</Text>
         ))}
       </View>

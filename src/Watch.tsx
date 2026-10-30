@@ -63,7 +63,7 @@ export default function Watch({ onBack }: { onBack: () => void }) {
     return (
       <View>
         <Btn label="Back" color={C.card} onPress={onBack} />
-        <TextInput style={[s.input, { textAlign: 'center', letterSpacing: 6, fontSize: 28 }]} placeholder="CODE" placeholderTextColor={C.dim} autoCapitalize="characters" autoCorrect={false} maxLength={6} value={code} onChangeText={setCode} />
+        <TextInput style={[s.input, { textAlign: 'center', letterSpacing: 4, fontSize: 24 }]} placeholder="CODE" placeholderTextColor={C.dim} autoCapitalize="characters" autoCorrect={false} maxLength={16} value={code} onChangeText={setCode} />
         <TextInput style={s.input} placeholder="Your name (optional)" placeholderTextColor={C.dim} value={name} onChangeText={setName} maxLength={30} />
         <Btn label="Watch" onPress={go} />
         {!!msg && <Text style={s.err}>{msg}</Text>}

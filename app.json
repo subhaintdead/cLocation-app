@@ -13,13 +13,31 @@
         "android.permission.ACCESS_BACKGROUND_LOCATION",
         "android.permission.FOREGROUND_SERVICE",
         "android.permission.FOREGROUND_SERVICE_LOCATION",
-        "android.permission.RECEIVE_BOOT_COMPLETED"
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.POST_NOTIFICATIONS"
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
-      }
+      },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "subhaintdead.github.io",
+              "pathPrefix": "/watch"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
     },
     "plugins": [
       [
@@ -30,6 +48,13 @@
           "locationAlwaysAndWhenInUsePermission": "Location is shared while sharing is on, including with the screen off.",
           "androidForegroundServiceIcon": "./assets/notification-icon.png"
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#2563eb"
+        }
       ]
     ],
     "extra": {
@@ -38,6 +63,7 @@
       }
     },
     "owner": "subhaintdead",
-    "icon": "./assets/icon.png"
+    "icon": "./assets/icon.png",
+    "scheme": "clocation"
   }
 }

@@ -1,10 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { rpc } from './api';
+import { dropRecent, pushRecent, Recent } from './recent';
 
 export type Sharer = { code: string; secret: string; name: string };
 export type Pt = { lat: number; lng: number; t: number; spd?: number; hdg?: number };
 
-export const K = { sharer: 'sharer', queue: 'queue', viewer: 'viewer', log: 'log', sharing: 'sharing' };
+export const K = { sharer: 'sharer', queue: 'queue', viewer: 'viewer', log: 'log', sharing: 'sharing', recent: 'recent', alertPrefs: 'alertPrefs' };
 
 // tiny on-device log, shown on the Share screen (survives crashes)
 export async function log(m: string) {
@@ -65,3 +66,28 @@ export const ago = (ms: number) => {
   const h = Math.floor(m / 60);
   return h < 24 ? `${h} h ${m % 60} min ago` : `${Math.floor(h / 24)} d ago`;
 };
+
+// ---- recently watched codes (local only, max 5) ----
+export const getRecent = async () => (await getJSON<Recent[]>(K.recent)) ?? [];
+export async function addRecent(code: string, name: string) {
+  const l = pushRecent(await getRecent(), { code, name, at: Date.now() });
+  await setJSON(K.recent, l);
+  return l;
+}
+export async function removeRecent(code: string) {
+  const l = dropRecent(await getRecent(), code);
+  await setJSON(K.recent, l);
+  return l;
+}
+export const clearRecent = () => AsyncStorage.removeItem(K.recent);
+
+// ---- this phone's own arrival-alert choice per code (overrides the sender's default) ----
+export async function getAlertPref(code: string): Promise<number | null> {
+  const m = (await getJSON<Record<string, number>>(K.alertPrefs)) ?? {};
+  return code in m ? m[code] : null;
+}
+export async function setAlertPref(code: string, meters: number) {
+  const m = (await getJSON<Record<string, number>>(K.alertPrefs)) ?? {};
+  m[code] = meters;
+  await setJSON(K.alertPrefs, m);
+}

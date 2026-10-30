@@ -155,26 +155,22 @@ export default function Share({ onBack }: { onBack: () => void }) {
         <>
           <View style={s.card}>
             <View style={[s.row, { alignItems: 'center', paddingVertical: 0 }]}>
-              <Text style={s.text}>Code expires</Text>
+              <Text style={s.text}>code expiration</Text>
               <Switch value={info.expiry_hours != null} onValueChange={(v) => setExpiry(v ? DEFAULT_EXPIRY : null)} />
             </View>
             {info.expiry_hours != null && <Chips options={EXPIRY_OPTS} value={info.expiry_hours} onChange={setExpiry} />}
             <Text style={s.dim}>
               {remaining == null
-                ? 'Off. The code works until you change it.'
+                ? null
                 : remaining > 0
-                  ? `Stops working in ${inText(remaining)}. A new code restarts the timer.`
-                  : 'Expired. Watchers see "Code expired". Tap New code to start again.'}
+                  ? `expires in ${inText(remaining)}.`
+                  : 'expired. tap New code to share expiring codes again.'}
             </Text>
           </View>
 
           <View style={s.card}>
-            <Text style={s.text}>Arrival alert for watchers</Text>
+            <Text style={s.text}>arrival alerts</Text>
             <Chips options={ALERT_OPTS} value={info.alert_m} onChange={setAlert} />
-            <Text style={s.dim}>
-              The default distance at which a watcher's phone alerts them that you are close. Each watcher can change it or turn it off.
-              Only works while they have the app open. Off by default.
-            </Text>
           </View>
         </>
       )}

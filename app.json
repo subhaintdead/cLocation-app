@@ -28,7 +28,7 @@
           "data": [
             {
               "scheme": "https",
-              "host": "subhaintdead.github.io",
+              "host": "clocation-web.vercel.app",
               "pathPrefix": "/watch"
             }
           ],

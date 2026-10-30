@@ -11,7 +11,7 @@ export async function log(m: string) {
   try {
     const l = (await AsyncStorage.getItem(K.log).then((v) => (v ? JSON.parse(v) : []))) as string[];
     l.push(`${new Date().toLocaleTimeString()} ${m}`);
-    await AsyncStorage.setItem(K.log, JSON.stringify(l.slice(-14)));
+    await AsyncStorage.setItem(K.log, JSON.stringify(l.slice(-40)));
   } catch {}
 }
 let lastErr = '';

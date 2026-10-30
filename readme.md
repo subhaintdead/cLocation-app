@@ -61,7 +61,7 @@ for maps i used openstreetmaps(can change to google maps api later)
 
 for maps, this project can be updated to use google maps instead of openstreetmaps.
 
-for database, a paid tier can be user.
+for database, a paid tier can be used.
 
 the ui/ux can be polished further.
 

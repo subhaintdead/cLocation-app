@@ -4,12 +4,36 @@
 create table if not exists vehicles (
   id uuid primary key default gen_random_uuid(),
   code text unique not null,
+  custom_code text,
   secret text not null,
   name text not null default '',
   sharing boolean not null default false,
   last_lat double precision, last_lng double precision, last_at timestamptz,
   created_at timestamptz not null default now()
 );
+-- Vanity code (optional, null by default). Set it by hand in Table Editor / SQL. Works for watching only.
+alter table vehicles add column if not exists custom_code text;
+alter table vehicles drop constraint if exists vehicles_custom_code_ok;
+alter table vehicles add constraint vehicles_custom_code_ok
+  check (custom_code is null or (custom_code = upper(custom_code) and custom_code ~ '^[A-Z0-9_-]{3,16}$'));
+create unique index if not exists vehicles_custom_code_u on vehicles(custom_code);
+
+-- a custom code may never equal anyone's random code (and vice versa)
+create or replace function vehicles_code_clash() returns trigger language plpgsql as $$
+begin
+  if new.custom_code is not null and (new.custom_code = new.code
+     or exists (select 1 from vehicles where id <> new.id and code = new.custom_code)) then
+    raise exception 'custom_code % clashes with an existing code', new.custom_code;
+  end if;
+  if exists (select 1 from vehicles where id <> new.id and custom_code = new.code) then
+    raise exception 'code % clashes with an existing custom_code', new.code;
+  end if;
+  return new;
+end $$;
+drop trigger if exists vehicles_code_clash on vehicles;
+create trigger vehicles_code_clash before insert or update of code, custom_code on vehicles
+  for each row execute function vehicles_code_clash();
+
 create table if not exists points (
   id bigint generated always as identity primary key,
   vehicle_id uuid not null references vehicles(id) on delete cascade,
@@ -41,7 +65,7 @@ begin
   loop
     c := '';
     for i in 1..6 loop c := c || substr(a, 1 + floor(random() * length(a))::int, 1); end loop;
-    exit when not exists (select 1 from vehicles where code = c);
+    exit when not exists (select 1 from vehicles where code = c or custom_code = c);
   end loop;
   return c;
 end $$;
@@ -109,7 +133,8 @@ create or replace function get_latest(p_code text, p_viewer text, p_name text) r
 language plpgsql security definer set search_path = public as $$
 declare v vehicles; trail jsonb; fresh boolean;
 begin
-  select * into v from vehicles where code = upper(trim(p_code));
+  select * into v from vehicles
+   where code = upper(trim(p_code)) or custom_code = upper(trim(p_code));
   if not found then return null; end if;
   if p_viewer is not null and length(p_viewer) between 8 and 64 then
     insert into viewers(vehicle_id, viewer_id, name)

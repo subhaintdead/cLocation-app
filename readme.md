@@ -2,7 +2,7 @@
 
 a Seva First Innovation Challenge 2026 entry
 
-submitted by: Subhadip Majumdar&#32;
+submitted by: Subhadip Majumdar
 
 
 ## what is it?
@@ -37,6 +37,10 @@ the app has two modes: **Share** and **Watch**.
 - no accounts and no phone numbers are collected.(for privacy, however this can be implemented later)
 - the sender can see who watched in the last 48 hours. location history and the viewer log are deleted automatically after 48 hours.
 - if the signal drops, the phone stores points and sends them when signal returns.
+- the code can be shared as a link (`.../watch?code=XYZ123`). tapping it opens the app if it is installed, otherwise a web page with the same live map, so watchers do not need the app.
+- the sender can make the code expire after 24 h / 48 h / 7 days / 14 days. it is off by default.
+- watchers can see themselves on the map, and get a notification when the vehicle comes within 100 / 200 / 500 m of them. it is off by default.
+- updates are pushed instantly (supabase realtime) instead of waiting for the next refresh.
 
 safety rules: only the driver can share, only people with the code can view, the code can be changed at any time, and history expires. The same app works for any vehicle or person: ambulance, farm-produce van, village bus, a family member walking home.
 
@@ -65,8 +69,10 @@ for database, a paid tier can be used.
 
 the ui/ux can be polished further.
 
+alerts that work with the phone locked need real push notifications (a server step that sends them when the vehicle gets close).
+
 ## source code and downloadable app
 
-the project and its details can be found here:&#32;
+the project and its details can be found here:
 
-&#32;<https://subhaintdead.github.io/cLocation-download>
+<https://subhaintdead.github.io/cLocation-download>
